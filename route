@@ -1,0 +1,51 @@
+#!/usr/bin/mawk -f
+
+BEGIN {
+        split(ENVIRON["QUERY_STRING"], a, "&")
+        content_type = "text/plain"
+        for (i in a) {
+                if (a[i] ~ /^lat1=-?[0-9]+\.?[0-9]+$/) {
+                        split(a[i], tmp, "=")
+                        lat1=tmp[2]
+                        continue
+                }
+                if (a[i] ~ /^lon1=-?[0-9]+\.?[0-9]+$/) {
+                        split(a[i], tmp, "=")
+                        lon1=tmp[2]
+                        continue
+                }
+                if (a[i] ~ /^lon2=-?[0-9]+\.?[0-9]+$/) {
+                        split(a[i], tmp, "=")
+                        lon2=tmp[2]
+                        continue
+                }
+                if (a[i] ~ /^lat2=-?[0-9]+\.[0-9]+$/) {
+                        split(a[i], tmp, "=")
+                        lat2=tmp[2]
+                        continue
+                }
+                if (a[i] ~ /^json/) {
+                        content_type="application/json"
+                        continue
+                }
+                if (a[i] ~ /^csv/) {
+                        content_type="text/csv"
+                        continue
+                }
+        }
+
+
+        printf("Content-type: %s\n\n", content_type)
+        while(("/usr/bin/routino-router --quickest --output-text --output-stdout --dir=/150G/osm/ --prefix=GB --lat1="lat1" --lon1="lon1" --lat2="lat2" --lon2="lon2" | tail -n 1") | getline) {
+                if (content_type == "application/json") {
+                        printf("{\"km\":\"%0.0f\", \"mins\":\"%0.0f\"}\n", $7, $9*1.18)
+                        exit
+                }
+                if ( content_type == "text/csv" ) {
+                        printf("\"km\",\"mins\"\n")
+                        printf("%0.0f,%0.0f\n", $7, $9*1.18)
+                        exit
+                }
+                printf("km: %0.0f mins: %0.0f\n", $7, $9*1.18)
+        }
+}
